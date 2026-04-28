@@ -92,7 +92,7 @@ tar xzf AetherTune-VERSION-macos-x86_64.tar.gz
 ./AetherTune-VERSION-macos-x86_64/AetherTune
 ```
 
-Replace `VERSION` with the actual tag (e.g. `v0.7.0`). You'll need `mpv` installed — if you have [Homebrew](https://brew.sh/): `brew install mpv`.
+Replace `VERSION` with the actual tag (e.g. `v0.7.1`). You'll need `mpv` installed — if you have [Homebrew](https://brew.sh/): `brew install mpv`.
 
 > **macOS note:** Audio visualization uses a simulated mode. Playback and all other features work normally.
 
@@ -109,7 +109,7 @@ tar xzf AetherTune-VERSION-linux-x86_64.tar.gz
 ./AetherTune-VERSION-linux-x86_64/AetherTune
 ```
 
-Replace `VERSION` with the actual tag (e.g. `v0.6.0`). You'll need `mpv` and `parec` installed on your system.
+Replace `VERSION` with the actual tag (e.g. `v0.7.1`). You'll need `mpv` and `parec` installed on your system.
 
 </details>
 
@@ -184,9 +184,9 @@ aethertune --boot-speed=fast
 
 > On Windows, run `AetherTune.exe` from Windows Terminal. If installed from source on Linux, use `./target/release/AetherTune`.
 
-## Keybindings
+## Keybindings (Defaults)
 
-Below is a list of default keyboard shortcuts. Press `?` in the app to see them (`Esc` closes the overlay). All keybindings can be remapped — see [Keybindings](#keybindings-1) under Settings.
+Below is a list of default keyboard shortcuts. All keybindings can be remapped from the settings overlay (`S`). Press `?` in the app to see your current bindings (`Esc` closes the overlay).
 
 | Key                    | Action                                       |
 | ---------------------- | -------------------------------------------- |
@@ -202,7 +202,7 @@ Below is a list of default keyboard shortcuts. Press `?` in the app to see them 
 | `[` / `]`              | Cycle genre category                         |
 | `Shift+Tab`            | Cycle genre category (backward)              |
 | `?`                    | Help overlay                                 |
-| `S`                    | Keybinding settings overlay                  |
+| `S`                    | Customize keybindings                        |
 | `` ` ``                | Performance profiler                         |
 | `<` / `>`              | Adjust tick rate (when profiler is open)     |
 | `q`                    | Quit                                         |
@@ -213,7 +213,7 @@ AetherTune has a settings screen accessible from the launch menu, and a keybindi
 
 ### Country Code
 
-Set a two-letter ISO 3166-1 Alpha-2 country code (e.g. `US`, `DE`, `GB`, `JP`) to blend local stations into your results. When configured, roughly 30% of stations in each genre and search result will come from your country, interleaved naturally with global results sorted by popularity.
+Set a two-letter ISO 3166-1 Alpha-2 country code (e.g. `US`, `DE`, `GB`, `JP`) to blend local stations into your results. You can find your country code in the [full list on Wikipedia](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements). When configured, roughly 30% of stations in each genre and search result will come from your country, interleaved naturally with global results sorted by popularity.
 
 To configure: launch AetherTune → select **Settings** from the menu → type your two-letter country code → press **Enter** to save.
 
