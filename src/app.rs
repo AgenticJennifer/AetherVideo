@@ -203,6 +203,7 @@ pub enum Overlay {
     Help,
     StationDetail,
     Settings,
+    GenrePicker,
 }
 
 /// Lightweight per-frame performance counters.
@@ -417,6 +418,8 @@ pub struct App {
     pub is_loading: bool,
     /// Receiver for the result of a background fetch (checked each tick)
     pub pending_fetch: Option<oneshot::Receiver<FetchResult>>,
+    /// Currently selected index in the genre picker overlay
+    pub genre_selected: usize,
 }
 
 #[derive(Clone)]
@@ -474,6 +477,12 @@ impl App {
             categories: vec![
                 "Lo-fi", "Jazz", "Rock", "Classical", "Chill",
                 "Blues", "Electronic", "Ambient", "Pop", "Metal",
+                "Hip Hop", "R&B", "Soul", "Funk", "Reggae",
+                "Country", "Folk", "Punk", "Indie", "Latin",
+                "House", "Techno", "Drum and Bass", "Trance", "Dubstep",
+                "Synthwave", "Retrowave", "Vaporwave",
+                "Soundtrack", "World", "Disco", "Ska",
+                "News", "Talk", "Chat", "Sports",
             ],
             category_index: 0,
             active_panel: ActivePanel::Stations,
@@ -502,6 +511,7 @@ impl App {
             settings_awaiting_key: None,
             is_loading: false,
             pending_fetch: None,
+            genre_selected: 0,
         }
     }
 
@@ -591,6 +601,15 @@ impl App {
             let _ = tx.send(fetch_result);
         });
         self.pending_fetch = Some(rx);
+    }
+
+    /// Select a genre by index from the genre picker overlay.
+    pub fn select_genre(&mut self, index: usize) {
+        if index >= self.categories.len() || self.is_loading { return; }
+        self.category_index = index;
+        let genre = self.categories[self.category_index];
+        let tag = genre.to_lowercase();
+        self.start_tag_fetch(tag, genre.to_string());
     }
 
     pub fn play(&mut self) {

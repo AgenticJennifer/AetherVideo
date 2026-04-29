@@ -103,6 +103,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 match app.input_mode {
                     InputMode::Normal => {
+                        // ── Genre picker overlay ──
+                        if app.overlay == Overlay::GenrePicker {
+                            match key.code {
+                                KeyCode::Esc => {
+                                    app.overlay = Overlay::None;
+                                }
+                                _ if app.keybindings.genre_picker.matches(key.code) => {
+                                    app.overlay = Overlay::None;
+                                }
+                                KeyCode::Up | KeyCode::Char('k') => {
+                                    if app.genre_selected > 0 {
+                                        app.genre_selected -= 1;
+                                    }
+                                }
+                                KeyCode::Down | KeyCode::Char('j') => {
+                                    if app.genre_selected < app.categories.len() - 1 {
+                                        app.genre_selected += 1;
+                                    }
+                                }
+                                KeyCode::Enter => {
+                                    app.select_genre(app.genre_selected);
+                                    app.overlay = Overlay::None;
+                                }
+                                _ => {}
+                            }
+                            continue;
+                        }
+
                         // ── Settings overlay has its own input handling ──
                         if app.overlay == Overlay::Settings {
                             // If awaiting a key for rebinding
@@ -216,6 +244,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         } else if app.keybindings.settings.matches(kc) {
                             app.overlay = Overlay::Settings;
                             app.settings_awaiting_key = None;
+                        } else if app.keybindings.genre_picker.matches(kc) {
+                            app.genre_selected = app.category_index;
+                            app.overlay = Overlay::GenrePicker;
                         } else if app.keybindings.search.matches(kc) {
                             app.search_query.clear();
                             app.input_mode = InputMode::Editing;
