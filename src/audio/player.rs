@@ -85,7 +85,8 @@ pub struct Player {
     pub audio_level: f64,
     pub media_title: Option<String>,
     request_counter: u64,
-    /// Whether parec is available for real audio capture (always false on Windows)
+    /// Whether parec is available for real audio capture (unix only)
+    #[cfg(unix)]
     has_parec: bool,
     /// Real-time stream information from mpv
     pub stream_info: StreamInfo,
@@ -104,9 +105,6 @@ impl Player {
             .status()
             .is_ok();
 
-        #[cfg(windows)]
-        let has_parec = false;
-
         Self {
             process: None,
             #[cfg(unix)]
@@ -122,6 +120,7 @@ impl Player {
             audio_level: 0.0,
             media_title: None,
             request_counter: 0,
+            #[cfg(unix)]
             has_parec,
             stream_info: StreamInfo::new(),
         }
@@ -166,6 +165,7 @@ impl Player {
                     self.connect_ipc();
 
                     // Start audio capture for visualization if parec is available
+                    #[cfg(unix)]
                     if self.has_parec {
                         self.start_capture();
                     }
@@ -387,6 +387,7 @@ impl Player {
         }
     }
 
+    #[cfg(unix)]
     fn parse_stream_info(&mut self, text: &str) {
         if text.contains("\"request_id\":200") || text.contains("\"request_id\": 200") {
             if let Some(val) = Self::extract_number(text) {
@@ -415,6 +416,7 @@ impl Player {
         }
     }
 
+    #[cfg(unix)]
     fn extract_number(json: &str) -> Option<f64> {
         let data_key = "\"data\":";
         let idx = json.find(data_key)?;
@@ -426,6 +428,7 @@ impl Player {
         num_str.parse::<f64>().ok()
     }
 
+    #[cfg(unix)]
     fn extract_string_value(json: &str) -> Option<String> {
         let data_key = "\"data\":";
         let idx = json.find(data_key)?;
@@ -439,6 +442,7 @@ impl Player {
         }
     }
 
+    #[cfg(unix)]
     fn extract_media_title(json_line: &str) -> Option<String> {
         if !json_line.contains("media-title") {
             return None;
