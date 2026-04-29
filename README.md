@@ -295,6 +295,14 @@ Process isolation is handled carefully: `parec` runs in its own process group vi
 
 Favorites, history, and user preferences (tick rate, volume, country code, keybindings) are stored as JSON in `~/.aethertune/`. The serializer/parser is hand-rolled (no serde dependency) to keep the dependency tree minimal. Settings like tick rate and keybindings are saved automatically when adjusted and restored on next launch. The country code is configured via the Settings screen in the launch menu. Only non-default keybindings are persisted to keep the config file clean.
 
+## Contributing
+
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for build instructions, project structure, and how to submit PRs.
+
+## Performance Tuning
+
+AetherTune has a built-in per-frame profiler. See [docs/PROFILING.md](docs/PROFILING.md) for how to read the profiler and tune performance for your system.
+
 ## License
 
 MIT
