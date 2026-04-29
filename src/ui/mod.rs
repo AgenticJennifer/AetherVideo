@@ -1,5 +1,6 @@
 pub mod header;
 pub mod helpers;
+pub mod genre_picker;
 pub mod launcher;
 pub mod media_browser;
 pub mod now_playing;
@@ -47,6 +48,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Overlay::Help => overlays::draw_help(f, app, size),
         Overlay::StationDetail => overlays::draw_detail(f, app, size),
         Overlay::Settings => settings::draw(f, app, size),
+        Overlay::GenrePicker => genre_picker::draw(f, app, size),
         Overlay::None => {}
     }
 

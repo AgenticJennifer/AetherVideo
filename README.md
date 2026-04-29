@@ -201,6 +201,7 @@ Below is a list of default keyboard shortcuts. All keybindings can be remapped f
 | `Tab`                  | Cycle panel (Stations / Favorites / History) |
 | `[` / `]`              | Cycle genre category                         |
 | `Shift+Tab`            | Cycle genre category (backward)              |
+| `g`                    | Genre picker overlay                         |
 | `?`                    | Help overlay                                 |
 | `S`                    | Customize keybindings                        |
 | `` ` ``                | Performance profiler                         |
@@ -274,6 +275,7 @@ src/
     ├── stream_info.rs        Live stream health panel
     ├── media_browser.rs      Media source switcher (Radio/Subsonic stub)
     ├── overlays.rs           Help + station detail popups
+    ├── genre_picker.rs       Genre selection overlay
     ├── settings.rs           Keybinding settings overlay
     ├── shutdown.rs           CRT power-off animation on quit
     └── perf_overlay.rs       Built-in performance profiler

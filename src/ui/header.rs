@@ -47,6 +47,7 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
 
         use crate::storage::config::keycode_to_string;
         let search_key = keycode_to_string(app.keybindings.search.primary);
+        let genre_key = keycode_to_string(app.keybindings.genre_picker.primary);
         let help_key = keycode_to_string(app.keybindings.help.primary);
         let settings_key = keycode_to_string(app.keybindings.settings.primary);
 
@@ -58,7 +59,7 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                 Style::default().fg(CYAN),
             ),
             Span::styled(
-                format!("  │  {} search  │  {} help  │  {} settings", search_key, help_key, settings_key),
+                format!("  │  {} search  │  {} genre  │  {} help  │  {} settings", search_key, genre_key, help_key, settings_key),
                 Style::default().fg(Color::Rgb(80, 80, 110)),
             ),
         ]);

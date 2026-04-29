@@ -33,6 +33,7 @@ pub fn draw_help(f: &mut Frame, app: &App, area: Rect) {
         help_line(&binding_display(&kb.cycle_panel), "Cycle panel"),
         help_line(&binding_display(&kb.genre_next), "Next genre"),
         help_line(&binding_display(&kb.genre_prev), "Previous genre"),
+        help_line(&binding_display(&kb.genre_picker), "Genre picker"),
         help_line(&binding_display(&kb.help), "Toggle this help"),
         help_line(&binding_display(&kb.perf_toggle), "Performance profiler"),
         help_line(&binding_display(&kb.perf_tick_slower), "Tick rate slower (profiler)"),
