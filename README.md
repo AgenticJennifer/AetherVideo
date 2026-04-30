@@ -169,6 +169,19 @@ Download the latest `.zip` from the [Releases page](https://github.com/nevermore
 
 </details>
 
+<details>
+<summary><b>All platforms — cargo install</b></summary>
+
+If you have Rust installed, you can install directly from GitHub:
+
+```bash
+cargo install --git https://github.com/nevermore23274/AetherTune
+```
+
+This builds and installs the `AetherTune` binary to `~/.cargo/bin/`. Make sure `mpv` is available on your system.
+
+</details>
+
 ## Usage
 
 ```bash

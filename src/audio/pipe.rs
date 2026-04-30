@@ -1,5 +1,6 @@
 #[cfg(unix)]
 use std::io::Read;
+#[cfg(unix)]
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
