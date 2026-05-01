@@ -2,7 +2,9 @@
 use std::io::Read;
 #[cfg(unix)]
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::cell::UnsafeCell;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Number of frequency bands we compute for the visualizer
 pub const NUM_BANDS: usize = 16;
@@ -12,7 +14,10 @@ const FFT_SIZE: usize = 1024;
 /// Usable frequency bins (first half of FFT output)
 const MAGNITUDE_COUNT: usize = FFT_SIZE / 2;
 
-/// Shared state between the reader thread and the main thread
+/// Shared state between the reader thread and the main thread.
+/// All fields are Copy — this is important for the SeqLock's
+/// bytewise snapshot to be safe and meaningful.
+#[derive(Clone, Copy)]
 pub struct AudioAnalysis {
     /// Per-band energy levels, 0.0..1.0
     pub bands: [f64; NUM_BANDS],
@@ -25,7 +30,7 @@ pub struct AudioAnalysis {
 }
 
 impl AudioAnalysis {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             bands: [0.0; NUM_BANDS],
             rms: 0.0,
@@ -35,11 +40,81 @@ impl AudioAnalysis {
     }
 }
 
-pub type SharedAnalysis = Arc<Mutex<AudioAnalysis>>;
+/// A sequence lock for single-producer / single-consumer latest-value handoff.
+///
+/// The producer increments the sequence to an odd number before writing,
+/// then increments again to even when done. The consumer reads the sequence,
+/// copies the data, and checks the sequence again — if both reads match and
+/// are even, the copy is consistent. Otherwise it retries.
+///
+/// This is lock-free on both sides: the producer never blocks, and the
+/// consumer only spins for the duration of a write (~nanoseconds).
+pub struct SeqLock<T: Copy> {
+    /// Odd = write in progress, even = safe to read
+    sequence: AtomicU64,
+    data: UnsafeCell<T>,
+}
+
+// SAFETY: SeqLock's protocol guarantees the consumer never observes a torn
+// write — it detects partial writes via the sequence counter and retries.
+// The producer is the only writer, and increments the sequence atomically
+// around each write. This is the standard seqlock invariant.
+unsafe impl<T: Copy> Sync for SeqLock<T> {}
+unsafe impl<T: Copy> Send for SeqLock<T> {}
+
+impl<T: Copy> SeqLock<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            sequence: AtomicU64::new(0),
+            data: UnsafeCell::new(value),
+        }
+    }
+
+    /// Producer: atomically publish a new value.
+    /// Only one thread may call this (single-producer constraint).
+    pub fn write(&self, value: T) {
+        // Mark sequence odd (write in progress)
+        self.sequence.fetch_add(1, Ordering::Release);
+
+        // SAFETY: single producer guarantee — no concurrent writes.
+        // Consumers detect this in-progress write via the odd sequence
+        // and retry, so they never read torn data.
+        unsafe { *self.data.get() = value; }
+
+        // Mark sequence even (write complete)
+        self.sequence.fetch_add(1, Ordering::Release);
+    }
+
+    /// Consumer: read the latest consistent snapshot.
+    /// Spins briefly if a write is in progress (sub-microsecond).
+    pub fn read(&self) -> T {
+        loop {
+            let s1 = self.sequence.load(Ordering::Acquire);
+            if s1 & 1 != 0 {
+                // Writer is mid-update — spin
+                std::hint::spin_loop();
+                continue;
+            }
+
+            // SAFETY: sequence is even, so no write is in progress.
+            // We copy the full T, then verify the sequence hasn't changed.
+            let snapshot = unsafe { *self.data.get() };
+
+            let s2 = self.sequence.load(Ordering::Acquire);
+            if s1 == s2 {
+                return snapshot;
+            }
+            // Sequence changed — a write slipped in, retry
+            std::hint::spin_loop();
+        }
+    }
+}
+
+pub type SharedAnalysis = Arc<SeqLock<AudioAnalysis>>;
 
 /// Create the shared analysis state
 pub fn new_shared_analysis() -> SharedAnalysis {
-    Arc::new(Mutex::new(AudioAnalysis::new()))
+    Arc::new(SeqLock::new(AudioAnalysis::new()))
 }
 
 /// The FIFO path for this process
@@ -114,17 +189,21 @@ fn reader_loop(fifo: &std::path::Path, analysis: &SharedAnalysis) {
     // Pre-compute logarithmic band edges (bin indices)
     let band_edges = compute_band_edges();
 
+    // Track FFT count locally — we can't read-modify-write through the seqlock
+    let mut fft_count: u64 = 0;
+
     loop {
         // Read a half-window chunk (512 samples = 2048 bytes)
         match reader.read_exact(&mut read_buf) {
             Ok(()) => {}
             Err(_) => {
                 // FIFO closed or error — mpv stopped
-                if let Ok(mut a) = analysis.lock() {
-                    a.active = false;
-                    a.rms = 0.0;
-                    a.bands = [0.0; NUM_BANDS];
-                }
+                analysis.write(AudioAnalysis {
+                    active: false,
+                    rms: 0.0,
+                    bands: [0.0; NUM_BANDS],
+                    fft_count,
+                });
                 return;
             }
         }
@@ -164,12 +243,13 @@ fn reader_loop(fifo: &std::path::Path, analysis: &SharedAnalysis) {
         let band_energies = group_into_bands(&magnitudes, &band_edges);
 
         // Update shared state
-        if let Ok(mut a) = analysis.lock() {
-            a.active = true;
-            a.rms = rms;
-            a.bands = band_energies;
-            a.fft_count += 1;
-        }
+        fft_count += 1;
+        analysis.write(AudioAnalysis {
+            active: true,
+            rms,
+            bands: band_energies,
+            fft_count,
+        });
     }
 }
 

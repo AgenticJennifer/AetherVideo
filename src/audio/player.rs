@@ -250,11 +250,7 @@ impl Player {
             }
         }
 
-        if let Ok(mut a) = self.analysis.lock() {
-            a.active = false;
-            a.rms = 0.0;
-            a.bands = [0.0; crate::audio::pipe::NUM_BANDS];
-        }
+        self.analysis.write(crate::audio::pipe::AudioAnalysis::new());
     }
 
     #[cfg(windows)]

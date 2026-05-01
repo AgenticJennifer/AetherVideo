@@ -273,6 +273,8 @@ Only non-default keybindings are written to the config file to keep it clean. A 
   "tick_rate_ms": 30,
   "volume": 50,
   "country_code": "US",
+  "theme": "CRT",
+  "visualizer_enabled": true,
   "keybindings": {
       "quit": ["x"],
       "search": ["Space"]
@@ -288,7 +290,7 @@ src/
 ├── app.rs                    App state, business logic, perf stats
 ├── audio/
 │   ├── player.rs             mpv playback, IPC, parec capture, stream info
-│   ├── pipe.rs               FIFO creation, PCM reader thread, radix-2 FFT analysis
+│   ├── pipe.rs               FIFO creation, PCM reader thread, radix-2 FFT, SeqLock
 │   └── visualizer.rs         Bar animation (real + simulated modes)
 ├── storage/
 │   ├── config.rs             User preferences (tick rate, volume, country code, keybindings)
@@ -321,7 +323,7 @@ When `parec` is available, AetherTune captures audio through the PulseAudio/Pipe
 1. **mpv** plays audio normally through the default audio output
 2. **parec** captures the monitor source and writes raw s16le stereo 48kHz PCM to a named FIFO
 3. A background thread reads the FIFO using a **sliding window** — 512 new samples (~10.7ms) at a time, shifted into a 1024-sample buffer — then runs an **in-place radix-2 Cooley-Tukey FFT** with Hann windowing. This produces ~94 FFT updates/sec (2× the rate of full-chunk reads) without sacrificing frequency resolution. The 512 frequency bins are grouped into 16 logarithmically-spaced bands (50Hz–10kHz). FFT buffers, window coefficients, and band edges are all pre-allocated at thread startup for zero per-frame heap allocation.
-4. Band energies and RMS are pushed to a shared `Arc<Mutex<AudioAnalysis>>`
+4. Band energies and RMS are published via a lock-free **sequence lock** (`SeqLock<AudioAnalysis>`) — the reader thread writes without blocking, and the render thread always reads the latest consistent snapshot with no contention
 5. The visualizer applies CAVA-inspired post-processing: gravity fall-off (accelerating drop), integral smoothing (weighted running average), and automatic sensitivity adjustment
 
 Process isolation is handled carefully: `parec` runs in its own process group via `setsid()`, and cleanup uses `kill(-pgid, SIGTERM)` to ensure no orphaned processes.

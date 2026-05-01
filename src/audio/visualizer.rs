@@ -70,17 +70,14 @@ impl Visualizer {
     pub fn tick_real(&mut self, analysis: &SharedAnalysis, volume: u32) -> bool {
         self.frame = self.frame.wrapping_add(1);
 
-        let (active, bands, rms) = {
-            if let Ok(a) = analysis.lock() {
-                (a.active, a.bands, a.rms)
-            } else {
-                return false;
-            }
-        };
+        let snapshot = analysis.read();
 
-        if !active {
+        if !snapshot.active {
             return false;
         }
+
+        let bands = snapshot.bands;
+        let rms = snapshot.rms;
 
         self.active = true;
         let mut rng = rand::rng();

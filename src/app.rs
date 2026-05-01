@@ -967,12 +967,10 @@ impl App {
 
         // Update every ~1 second to avoid jittery measurements
         if elapsed >= 1.0 {
-            if let Ok(a) = self.analysis.lock() {
-                let count = a.fft_count;
-                let delta = count.saturating_sub(self.fft_count_prev);
-                self.fft_rate = delta as f64 / elapsed;
-                self.fft_count_prev = count;
-            }
+            let count = self.analysis.read().fft_count;
+            let delta = count.saturating_sub(self.fft_count_prev);
+            self.fft_rate = delta as f64 / elapsed;
+            self.fft_count_prev = count;
             self.fft_rate_time = now;
         }
     }
