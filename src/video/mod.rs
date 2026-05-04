@@ -1,4 +1,4 @@
-/// Video source abstraction layer for AetherStream
+/// Video source abstraction layer for AetherVideo
 pub mod iptv;
 pub mod player;
 pub mod youtube;

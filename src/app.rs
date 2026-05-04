@@ -740,7 +740,7 @@ impl App {
         if cfg!(target_os = "macos") {
             "mpv not found — install with: brew install mpv".to_string()
         } else if cfg!(target_os = "windows") {
-            "mpv not found — download from mpv.io or reinstall AetherStream".to_string()
+            "mpv not found — download from mpv.io or reinstall AetherVideo".to_string()
         } else {
             "mpv not found — install with your package manager (e.g. sudo apt install mpv)".to_string()
         }

@@ -131,7 +131,7 @@ fn connect_messages(total_ms: u64) -> [(&'static str, u64); 6] {
         ("Loading station metadata…",       step * 2),
         ("Initializing audio pipeline…",    step * 3),
         ("Configuring spectrum analyzer…",  step * 4),
-        ("Launching AetherStream ✓",         step * 5),
+        ("Launching AetherVideo ✓",         step * 5),
     ]
 }
 
@@ -173,7 +173,7 @@ impl MenuApp {
                 ("Start Radio", "Browse and stream internet radio stations"),
                 ("Settings", "Configure country and preferences"),
                 ("About", "Version info and credits"),
-                ("Quit", "Exit AetherStream"),
+                ("Quit", "Exit AetherVideo"),
             ],
             boot_start: Instant::now(),
             connect_start: None,
@@ -1037,7 +1037,7 @@ fn draw_about(f: &mut Frame) {
 
     let block = Block::default()
         .title(Span::styled(
-            " About AetherStream ",
+            " About AetherVideo ",
             Style::default()
                 .fg(Color::Rgb(0, 255, 255))
                 .add_modifier(Modifier::BOLD),
@@ -1074,7 +1074,7 @@ fn draw_about(f: &mut Frame) {
                 Style::default().fg(Color::Rgb(100, 100, 130)),
             ),
             Span::styled(
-                "github.com/JensProcessingUnit/AetherStream",
+                "github.com/JensProcessingUnit/AetherVideo",
                 Style::default().fg(Color::Rgb(100, 150, 255)),
             ),
         ]),

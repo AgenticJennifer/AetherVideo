@@ -53,9 +53,9 @@ cargo build --release
 
 ### Run Options
 ```bash
-AetherStream                  # With CRT boot animation
-AetherStream --skip-menu     # Skip launch menu
-AetherStream --boot-speed=fast  # Faster boot animation
+AetherVideo                  # With CRT boot animation
+AetherVideo --skip-menu     # Skip launch menu
+AetherVideo --boot-speed=fast  # Faster boot animation
 ```
 
 ---
