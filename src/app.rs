@@ -28,7 +28,32 @@ pub enum FetchResult {
     Error(String),
 }
 
+/// Video playlist fetch results
+pub enum VideoFetchResult {
+    /// Playlist loaded successfully
+    Loaded {
+        channels: Vec<crate::video::iptv::Channel>,
+        groups: Vec<String>,
+        message: String,
+    },
+    /// The fetch failed
+    Error(String),
+}
+
 // ─── Free-standing fetch functions (no &self — can be tokio::spawn'd) ────
+
+/// Fetch IPTV playlist from a URL
+pub async fn fetch_video_playlist(url: String) -> Result<(Vec<crate::video::iptv::Channel>, Vec<String>), String> {
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Failed to fetch playlist: {}", e))?;
+    let content = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+    let playlist = crate::video::iptv::parse_m3u(&content);
+    Ok((playlist.channels, playlist.groups))
+}
 
 /// Fetch blended global+local stations by tag.
 async fn fetch_blended_by_tag(
@@ -425,6 +450,8 @@ pub struct App {
     pub is_loading: bool,
     /// Receiver for the result of a background fetch (checked each tick)
     pub pending_fetch: Option<oneshot::Receiver<FetchResult>>,
+    /// Receiver for video playlist fetch results
+    pub pending_video_fetch: Option<oneshot::Receiver<VideoFetchResult>>,
     /// Currently selected index in the genre picker overlay
     pub genre_selected: usize,
     /// Active color theme for the player UI
@@ -433,6 +460,14 @@ pub struct App {
     pub theme_selected: usize,
     /// Whether the visualizer is enabled (can be toggled at runtime)
     pub visualizer_enabled: bool,
+    /// Video browser state (for IPTV and other video sources)
+    pub video_browser: Option<crate::ui::video_browser::VideoBrowserState>,
+    /// Video player instance
+    pub video_player: Option<crate::video::player::VideoPlayer>,
+    /// Currently playing video info
+    pub now_playing_video: Option<crate::video::VideoItem>,
+    /// Whether video mode is active (vs audio mode)
+    pub video_mode: bool,
 }
 
 #[derive(Clone)]
@@ -530,6 +565,7 @@ impl App {
             settings_awaiting_key: None,
             is_loading: false,
             pending_fetch: None,
+            pending_video_fetch: None,
             genre_selected: 0,
             theme: crate::ui::themes::Theme::by_name(&config.theme),
             theme_selected: {
@@ -537,6 +573,10 @@ impl App {
                 all.iter().position(|t| t.name.eq_ignore_ascii_case(&config.theme)).unwrap_or(0)
             },
             visualizer_enabled: config.visualizer_enabled,
+            video_browser: None,
+            video_player: Some(crate::video::player::VideoPlayer::new()),
+            now_playing_video: None,
+            video_mode: false,
         }
     }
 
@@ -700,7 +740,7 @@ impl App {
         if cfg!(target_os = "macos") {
             "mpv not found — install with: brew install mpv".to_string()
         } else if cfg!(target_os = "windows") {
-            "mpv not found — download from mpv.io or reinstall AetherTune".to_string()
+            "mpv not found — download from mpv.io or reinstall AetherStream".to_string()
         } else {
             "mpv not found — install with your package manager (e.g. sudo apt install mpv)".to_string()
         }
@@ -887,6 +927,64 @@ impl App {
                 self.status_message = Some("⚠ Station fetch was interrupted".to_string());
             }
         }
+    }
+
+    /// Check if a video playlist fetch has completed and apply the result.
+    pub fn poll_video_fetch(&mut self) {
+        let rx = match self.pending_video_fetch.as_mut() {
+            Some(rx) => rx,
+            None => return,
+        };
+
+        match rx.try_recv() {
+            Ok(result) => {
+                self.pending_video_fetch = None;
+                if let Some(ref mut browser) = self.video_browser {
+                    browser.loading = false;
+                    match result {
+                        VideoFetchResult::Loaded { channels, groups, message } => {
+                            browser.channels = channels;
+                            browser.groups = groups;
+                            browser.status_message = Some(message);
+                        }
+                        VideoFetchResult::Error(msg) => {
+                            browser.status_message = Some(msg);
+                        }
+                    }
+                }
+            }
+            Err(oneshot::error::TryRecvError::Empty) => {
+                // Still in flight — do nothing
+            }
+            Err(oneshot::error::TryRecvError::Closed) => {
+                // Sender dropped
+                self.pending_video_fetch = None;
+                if let Some(ref mut browser) = self.video_browser {
+                    browser.loading = false;
+                    browser.status_message = Some("⚠ Playlist fetch was interrupted".to_string());
+                }
+            }
+        }
+    }
+
+    /// Start fetching a video playlist from a URL (spawns async task).
+    pub fn start_video_playlist_fetch(&mut self, url: String) {
+        if self.pending_video_fetch.is_some() {
+            return; // Already fetching
+        }
+        let (tx, rx) = oneshot::channel();
+        tokio::spawn(async move {
+            let result = fetch_video_playlist(url).await;
+            let fetch_result = match result {
+                Ok((channels, groups)) => {
+                    let msg = format!("Loaded {} channels from playlist", channels.len());
+                    VideoFetchResult::Loaded { channels, groups, message: msg }
+                }
+                Err(e) => VideoFetchResult::Error(e),
+            };
+            let _ = tx.send(fetch_result);
+        });
+        self.pending_video_fetch = Some(rx);
     }
 
     /// Kick off the initial station fetch (called from main after App is constructed).

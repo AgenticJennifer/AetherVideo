@@ -97,7 +97,7 @@ pub struct Player {
 impl Player {
     pub fn new(analysis: SharedAnalysis) -> Self {
         let socket_path =
-            std::env::temp_dir().join(format!("aethertune-mpv-{}", std::process::id()));
+            std::env::temp_dir().join(format!("aetherstream-mpv-{}", std::process::id()));
 
         #[cfg(unix)]
         let has_parec = std::process::Command::new("parec")

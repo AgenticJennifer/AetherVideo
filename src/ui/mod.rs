@@ -14,12 +14,13 @@ pub mod stream_info;
 pub mod themes;
 pub mod theme_picker;
 pub mod visualizer;
+pub mod video_browser;
 
 use crate::app::{App, Overlay};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::Style,
-    widgets::Block,
+    style::{Style, Modifier},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -61,6 +62,12 @@ pub fn draw(f: &mut Frame, app: &App) {
 }
 
 fn draw_body(f: &mut Frame, app: &App, area: Rect) {
+    // Check if video mode is active and video_browser exists
+    if app.video_mode && app.video_browser.is_some() {
+        draw_video_body(f, app, area);
+        return;
+    }
+
     let body_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -122,4 +129,140 @@ fn draw_body(f: &mut Frame, app: &App, area: Rect) {
 
     // Bottom: media browser
     media_browser::draw(f, app, right_chunks[2]);
+}
+
+fn draw_video_body(f: &mut Frame, app: &App, area: Rect) {
+    let body_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
+        ])
+        .split(area);
+
+    // Left: video channel browser
+    video_browser::draw(f, app, body_chunks[0]);
+
+    // Right: now playing video info
+    let right_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(11),  // Now playing video info
+            Constraint::Min(10),     // Video playlist/channels
+            Constraint::Length(8),   // Controls
+        ])
+        .split(body_chunks[1]);
+
+    draw_video_now_playing(f, app, right_chunks[0]);
+    draw_video_info(f, app, right_chunks[1]);
+    draw_video_controls(f, app, right_chunks[2]);
+}
+
+fn draw_video_now_playing(f: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.theme;
+    let block = Block::default()
+        .title(" 🎬 Now Playing Video ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme.accent))
+        .style(Style::default().bg(theme.bg_dark));
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    if let Some(ref video) = app.now_playing_video {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+            ])
+            .split(inner);
+
+        f.render_widget(
+            Paragraph::new(format!("Title: {}", video.title))
+                .style(Style::default().fg(theme.text_muted)),
+            chunks[0],
+        );
+
+        if let Some(ref desc) = video.description {
+            f.render_widget(
+                Paragraph::new(format!("Source: {}", desc))
+                    .style(Style::default().fg(theme.text_muted)),
+                chunks[1],
+            );
+        }
+
+        if let Some(ref thumb) = video.thumbnail {
+            f.render_widget(
+                Paragraph::new(format!("Thumb: {}", thumb))
+                    .style(Style::default().fg(theme.text_muted)),
+                chunks[2],
+            );
+        }
+
+        let playing = if let Some(ref player) = app.video_player {
+            if player.is_playing() { "▶ Playing" } else { "⏸ Stopped" }
+        } else { "⏹ Stopped" };
+        f.render_widget(
+            Paragraph::new(playing)
+                .style(Style::default().fg(theme.accent)),
+            chunks[3],
+        );
+    } else {
+        f.render_widget(
+            Paragraph::new("No video playing")
+                .style(Style::default().fg(theme.text_muted)),
+            inner,
+        );
+    }
+}
+
+fn draw_video_info(f: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.theme;
+    let block = Block::default()
+        .title(" 📺 Video Info ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme.accent))
+        .style(Style::default().bg(theme.bg_dark));
+
+    f.render_widget(block, area);
+}
+
+fn draw_video_controls(f: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.theme;
+    let block = Block::default()
+        .title(" Controls ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme.accent))
+        .style(Style::default().bg(theme.bg_dark));
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .split(inner);
+
+    f.render_widget(
+        Paragraph::new("V: Switch to Audio | Esc: Back to Audio")
+            .style(Style::default().fg(theme.text_muted).add_modifier(Modifier::ITALIC)),
+        chunks[0],
+    );
+
+    let kitty_status = if crate::video::player::VideoPlayer::is_kitty_available() {
+        "✓ Kitty mode available"
+    } else {
+        "⚠ Install Kitty for embedded video"
+    };
+    f.render_widget(
+        Paragraph::new(kitty_status)
+            .style(Style::default().fg(theme.text_warn)),
+        chunks[1],
+    );
 }

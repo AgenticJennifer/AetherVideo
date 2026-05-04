@@ -120,7 +120,7 @@ pub fn new_shared_analysis() -> SharedAnalysis {
 /// The FIFO path for this process
 #[cfg(unix)]
 pub fn fifo_path() -> PathBuf {
-    std::env::temp_dir().join(format!("aethertune-pcm-{}", std::process::id()))
+    std::env::temp_dir().join(format!("aetherstream-pcm-{}", std::process::id()))
 }
 
 /// Create the named FIFO pipe. Returns true if successful.

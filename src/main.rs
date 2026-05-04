@@ -1,5 +1,6 @@
 pub mod app;
 pub mod audio;
+pub mod video;
 pub mod storage;
 pub mod ui;
 
@@ -107,6 +108,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 match app.input_mode {
                     InputMode::Normal => {
+                        // ── Video mode input handling ──
+                        if app.video_mode {
+                            if let Some(_) = app.video_browser {
+                                // Handle video browser input
+                                let handled = crate::ui::video_browser::handle_input(&mut app, key);
+                                if handled {
+                                    continue;
+                                }
+                            }
+                        }
+
                         // ── Theme picker overlay ──
                         if app.overlay == Overlay::ThemePicker {
                             let themes = crate::ui::themes::Theme::all();
@@ -364,6 +376,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if app.visualizer.noise_reduction > 0.95 {
                                 app.visualizer.noise_reduction = 0.95;
                             }
+                        } else if kc == KeyCode::Char('V') {
+                            // Toggle video mode
+                            app.video_mode = !app.video_mode;
+                            if app.video_mode && app.video_browser.is_none() {
+                                // Initialize video browser with empty state
+                                let mut state = crate::ui::video_browser::VideoBrowserState::default();
+                                state.status_message = Some("Press 'L' to load playlist".to_string());
+                                app.video_browser = Some(state);
+                            }
                         }
                     }
                     InputMode::Editing => match key.code {
@@ -400,6 +421,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Check if a background station fetch has completed
             app.poll_fetch();
+
+            // Check if a video playlist fetch has completed
+            app.poll_video_fetch();
 
             // Update FFT rate measurement for profiler
             app.update_fft_rate();

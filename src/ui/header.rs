@@ -89,7 +89,7 @@ fn header_block(theme: &crate::ui::themes::Theme) -> Block<'static> {
         .title(Line::from(vec![
             Span::styled(" 🎵 ", Style::default().fg(theme.secondary)),
             Span::styled(
-                "AetherTune",
+                "AetherStream",
                 Style::default().fg(theme.accent).add_modifier(Modifier::BOLD),
             ),
             Span::styled(" ", Style::default()),

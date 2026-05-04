@@ -24,7 +24,7 @@ impl HistoryStore {
             .or_else(|_| std::env::var("USERPROFILE"))
             .unwrap_or_else(|_| ".".to_string());
         let mut path = PathBuf::from(base);
-        path.push(".aethertune");
+        path.push(".aetherstream");
         fs::create_dir_all(&path).ok();
         path.push("history.json");
         path
